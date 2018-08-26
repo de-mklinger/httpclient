@@ -128,7 +128,7 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 			e.addSuppressed(suppressed);
 		}
 
-		LOG.error("Error in complete listener", e);
+		LOG.debug("Error in complete listener", e);
 	}
 
 	public CompletableFuture<T> getResult() {
