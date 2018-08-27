@@ -28,7 +28,9 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 		if (!securityProviderAdded) {
 			synchronized (HttpClientBuilderImpl.class) {
 				if (!securityProviderAdded) {
-					Security.addProvider(new OpenSSLProvider());
+					if (Security.getProvider("Conscrypt") == null) {
+						Security.addProvider(new OpenSSLProvider());
+					}
 					securityProviderAdded = true;
 				}
 			}

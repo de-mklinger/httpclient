@@ -154,6 +154,11 @@ public class JettyHttpClient implements HttpClient {
 			return;
 		}
 
+		final Optional<String> bodyProviderContentType = bodyProvider.contentType();
+		if (bodyProviderContentType.isPresent() && jettyRequest.getHeaders().get("Content-Type") == null) {
+			jettyRequest.header("Content-Type", bodyProviderContentType.get());
+		}
+
 		final DeferredContentProvider deferredContentProvider = new DeferredContentProvider() {
 			@Override
 			public long getLength() {

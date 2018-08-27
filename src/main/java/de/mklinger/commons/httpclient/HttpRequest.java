@@ -53,6 +53,15 @@ public interface HttpRequest {
 
 	public interface BodyProvider extends Iterable<CompletableFuture<ByteBuffer>> {
 		long contentLength();
+
+		/**
+		 * Get an optional Content-Type HTTP header value for the body. This is taken
+		 * into account, if no other (user set) Content-Type header is available when
+		 * sending the request.
+		 */
+		default Optional<String> contentType() {
+			return Optional.empty();
+		}
 	}
 
 	public interface Builder {
