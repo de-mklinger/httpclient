@@ -1,5 +1,9 @@
 package de.mklinger.commons.httpclient;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
 import java.io.IOException;
 import java.net.URI;
 
@@ -8,7 +12,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +53,7 @@ public class RedirectTest extends ServerTestBase {
 				.build()) {
 
 			final HttpResponse<String> response1 = httpClientWithoutRedirect.sendAsync(request, BodyHandlers.asString()).join();
-			Assert.assertEquals(302, response1.statusCode());
+			assertEquals(302, response1.statusCode());
 		}
 
 		try (final HttpClient httpClientWithRedirect = HttpClient.newBuilder()
@@ -61,10 +64,9 @@ public class RedirectTest extends ServerTestBase {
 
 
 			final HttpResponse<String> response2 = httpClientWithRedirect.sendAsync(request, BodyHandlers.asString()).join();
-			Assert.assertEquals(200, response2.statusCode());
-			final String s = response2.body();
-			Assert.assertEquals("Ok", s);
+			assertEquals(200, response2.statusCode());
+			assertEquals("Ok", response2.body());
+			assertThat(response2.uri().toASCIIString(), containsString("?wasredirected=true"));
 		}
 	}
-
 }

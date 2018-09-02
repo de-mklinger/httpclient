@@ -1,5 +1,6 @@
 package de.mklinger.commons.httpclient;
 
+import java.net.URI;
 import java.nio.ByteBuffer;
 
 /**
@@ -19,6 +20,14 @@ public interface HttpResponse<T> {
 	 * @return the response headers
 	 */
 	HttpHeaders headers();
+
+	/**
+	 * Returns the {@code URI} that the response was received from. This may be
+	 * different from the request {@code URI} if redirection occurred.
+	 *
+	 * @return the URI of the response
+	 */
+	URI uri();
 
 	/**
 	 * Returns the body. Depending on the type of {@code T}, the returned body

@@ -1,5 +1,6 @@
 package de.mklinger.commons.httpclient.internal.jetty;
 
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Iterator;
@@ -88,7 +89,7 @@ public class JettyHttpClient implements HttpClient {
 			jettyRequest.send(possibleTimeoutCompleteListener);
 
 			return fullCompleteListener.getResult()
-					.thenApply(result -> toHttpResponse(fullCompleteListener.getStatusCode(), fullCompleteListener.getResponseHeaders(), result));
+					.thenApply(result -> toHttpResponse(fullCompleteListener, result));
 
 		} catch (final Throwable e) {
 			// TODO is this a good pattern? Better directly throw?
@@ -96,28 +97,6 @@ public class JettyHttpClient implements HttpClient {
 			errorResult.completeExceptionally(e);
 			return errorResult;
 		}
-	}
-
-	private <T> CompleteListener applyTimeout(final HttpRequest request, final Request jettyRequest, final FullCompleteListener<T> fullCompleteListener) {
-		if (request.timeout().isPresent()) {
-			// TODO underlying implementation supports more than millis
-			return new TimeoutResponseListener(
-					fullCompleteListener,
-					jettyRequest,
-					request.timeout().get().toMillis(),
-					TimeUnit.MILLISECONDS,
-					getJettyClient().getScheduler());
-		} else {
-			return fullCompleteListener;
-		}
-	}
-
-	private <T> HttpResponse<T> toHttpResponse(final int statusCode, final HttpHeaders responseHeaders, final T result) {
-		LOG.debug("Building final HttpResponse");
-		return new JettyHttpResponse<>(
-				statusCode,
-				responseHeaders,
-				result);
 	}
 
 	private void applyTimeout(final HttpRequest request, final Request jettyRequest) {
@@ -132,6 +111,20 @@ public class JettyHttpClient implements HttpClient {
 			jettyRequest.timeout(timeout.get().toMillis(), TimeUnit.MILLISECONDS);
 		} catch (final ArithmeticException ex) {
 			jettyRequest.timeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+		}
+	}
+
+	private <T> CompleteListener applyTimeout(final HttpRequest request, final Request jettyRequest, final FullCompleteListener<T> fullCompleteListener) {
+		if (request.timeout().isPresent()) {
+			// TODO underlying implementation supports more than millis
+			return new TimeoutResponseListener(
+					fullCompleteListener,
+					jettyRequest,
+					request.timeout().get().toMillis(),
+					TimeUnit.MILLISECONDS,
+					getJettyClient().getScheduler());
+		} else {
+			return fullCompleteListener;
 		}
 	}
 
@@ -291,6 +284,23 @@ public class JettyHttpClient implements HttpClient {
 			return contentLength;
 		}
 		return -1;
+	}
+
+	private <T> HttpResponse<T> toHttpResponse(final FullCompleteListener<?> fullCompleteListener, final T result) {
+		return toHttpResponse(
+				fullCompleteListener.getUri(),
+				fullCompleteListener.getStatusCode(),
+				fullCompleteListener.getResponseHeaders(),
+				result);
+	}
+
+	private <T> HttpResponse<T> toHttpResponse(final URI uri, final int statusCode, final HttpHeaders responseHeaders, final T result) {
+		LOG.debug("Building final HttpResponse");
+		return new JettyHttpResponse<>(
+				uri,
+				statusCode,
+				responseHeaders,
+				result);
 	}
 
 	@Override

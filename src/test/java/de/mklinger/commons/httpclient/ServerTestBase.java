@@ -5,6 +5,7 @@ import static java.util.Collections.singletonMap;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
+import java.net.URI;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -44,6 +45,10 @@ public abstract class ServerTestBase {
 
 	protected String getBaseUrl() {
 		return "https://localhost:" + port;
+	}
+
+	protected URI getBaseUri() {
+		return URI.create(getBaseUrl());
 	}
 
 	@After

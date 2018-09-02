@@ -1,18 +1,13 @@
 package de.mklinger.commons.httpclient.internal.jetty;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.unmodifiableList;
-import static java.util.Collections.unmodifiableMap;
-
+import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.client.api.Response.Listener;
 import org.eclipse.jetty.client.api.Result;
+import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpFields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import de.mklinger.commons.httpclient.HttpHeaders;
 import de.mklinger.commons.httpclient.HttpResponse;
 import de.mklinger.commons.httpclient.HttpResponse.BodyCompleteListener;
+import de.mklinger.commons.httpclient.internal.HttpHeadersImpl;
 
 /**
  * @author Marc Klinger - mklinger[at]mklinger[dot]de
@@ -30,6 +26,7 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 	private final CompletableFuture<T> result;
 	private final HttpResponse.BodyHandler<T> responseBodyHandler;
 
+	private volatile URI uri;
 	private volatile int statusCode;
 	private volatile HttpHeaders responseHeaders;
 
@@ -42,6 +39,7 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 
 	@Override
 	public void onHeaders(final Response response) {
+		uri = response.getRequest().getURI();
 		statusCode = response.getStatus();
 		responseHeaders = toHttpHeaders(response.getHeaders());
 
@@ -56,11 +54,14 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 	}
 
 	private HttpHeaders toHttpHeaders(final HttpFields jettyHeaders) {
-		final Map<String, List<String>> modifiableMap = new HashMap<>();
-		jettyHeaders.forEach(
-				header -> modifiableMap.put(header.getName(), unmodifiableList(asList(header.getValues()))));
-		final Map<String, List<String>> map = unmodifiableMap(modifiableMap);
-		return () -> map;
+		final HttpHeadersImpl httpHeaders = new HttpHeadersImpl();
+		for (final HttpField jettyHeader : jettyHeaders) {
+			final String name = jettyHeader.getName();
+			for (final String value : jettyHeader.getValues()) {
+				httpHeaders.addHeader(name, value);
+			}
+		}
+		return httpHeaders;
 	}
 
 	@Override
@@ -133,6 +134,10 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 
 	public CompletableFuture<T> getResult() {
 		return result;
+	}
+
+	public URI getUri() {
+		return uri;
 	}
 
 	public int getStatusCode() {

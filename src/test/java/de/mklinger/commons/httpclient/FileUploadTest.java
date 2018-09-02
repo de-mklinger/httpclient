@@ -92,7 +92,7 @@ public class FileUploadTest extends ServerTestBase {
 
 			final long millis = System.currentTimeMillis() - start;
 			final long mib = fileSize / 1024 / 1024;
-			final double mibPerSec = Math.round((double)mib / (double)(millis / 1000) * 100) / 100;
+			final double mibPerSec = Math.round(mib / (millis / 1000.0) * 100.0) / 100.0;
 			LOG.info("Took {} millis for {} MiB ({} MiB/s)", millis, mib, mibPerSec);
 
 		} finally {

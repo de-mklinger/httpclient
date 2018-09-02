@@ -12,10 +12,11 @@ import java.util.OptionalLong;
 /**
  * @author Marc Klinger - mklinger[at]mklinger[dot]de
  */
-@FunctionalInterface
 public interface HttpHeaders {
 	/**
 	 * Returns an unmodifiable multi Map view of this HttpHeaders.
+	 *
+	 * Keys are case insensitive.
 	 *
 	 * @return the Map
 	 */

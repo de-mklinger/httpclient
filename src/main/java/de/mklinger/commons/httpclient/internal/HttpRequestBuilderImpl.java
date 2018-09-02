@@ -1,16 +1,9 @@
 package de.mklinger.commons.httpclient.internal;
 
-import static java.util.Collections.unmodifiableList;
-import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import de.mklinger.commons.httpclient.HttpHeaders;
@@ -23,7 +16,7 @@ import de.mklinger.commons.httpclient.HttpRequest.BodyProvider;
 public class HttpRequestBuilderImpl implements HttpRequest.Builder {
 	private URI uri;
 	private String method = "GET";
-	private Map<String, List<String>> headers;
+	private HttpHeadersImpl headers;
 	public HttpRequest.BodyProvider bodyProvider;
 	private Duration timeout;
 
@@ -74,9 +67,9 @@ public class HttpRequestBuilderImpl implements HttpRequest.Builder {
 		requireNonNull(value);
 		// TODO check for valid header: RFC 7230 section-3.2
 		if (headers == null) {
-			headers = new HashMap<>();
+			headers = new HttpHeadersImpl();
 		}
-		headers.computeIfAbsent(name, unused -> new ArrayList<>()).add(value);
+		headers.addHeader(name, value);
 		return this;
 	}
 
@@ -98,9 +91,10 @@ public class HttpRequestBuilderImpl implements HttpRequest.Builder {
 	public HttpRequest.Builder setHeader(final String name, final String value) {
 		requireNonNull(name);
 		requireNonNull(value);
-		if (headers != null) {
-			headers.remove(name);
+		if (headers == null) {
+			headers = new HttpHeadersImpl();
 		}
+		headers.setHeader(name, value);
 		return header(name, value);
 	}
 
@@ -127,22 +121,13 @@ public class HttpRequestBuilderImpl implements HttpRequest.Builder {
 		public HttpRequestImpl(final HttpRequestBuilderImpl builder) {
 			this.uri = requireNonNull(builder.uri);
 			this.method = requireNonNull(builder.method);
-			this.headers = toHttpHeaders(builder.headers);
+			if (builder.headers == null) {
+				this.headers = new HttpHeadersImpl();
+			} else {
+				this.headers = HttpHeadersImpl.deepCopy(builder.headers);
+			}
 			this.bodyProvider = Optional.ofNullable(builder.bodyProvider);
 			this.timeout = Optional.ofNullable(builder.timeout);
-		}
-
-		private static final HttpHeaders toHttpHeaders(final Map<String, List<String>> originalMap) {
-			final Map<String, List<String>> modifiableMap;
-			if (originalMap == null || originalMap.isEmpty()) {
-				modifiableMap = Collections.emptyMap();
-			} else {
-				modifiableMap = new HashMap<>();
-				originalMap.forEach(
-						(name, values) -> modifiableMap.put(name, unmodifiableList(new ArrayList<>(values))));
-			}
-			final Map<String, List<String>> map = unmodifiableMap(modifiableMap);
-			return () -> map;
 		}
 
 		@Override
