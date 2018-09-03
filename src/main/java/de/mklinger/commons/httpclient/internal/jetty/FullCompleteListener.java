@@ -97,6 +97,7 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 				try {
 					l.close();
 				} catch (final Throwable e) {
+					// TODO call handleError() from here?
 					this.result.completeExceptionally(e);
 				}
 			}
