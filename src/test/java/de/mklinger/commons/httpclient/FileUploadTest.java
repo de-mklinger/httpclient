@@ -9,9 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,12 +25,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.mklinger.commons.httpclient.HttpResponse.BodyHandler;
-
 /**
  * @author Marc Klinger - mklinger[at]mklinger[dot]de
  */
-public class FileUploadTest extends ServerTestBase {
+public class FileUploadTest extends ClientServerTestBase {
 	private static final int UPLOAD_COUNT = 20;
 	private static final int MIN_FILE_SIZE = 500;
 	private static final int MAX_FILE_SIZE = 20 * 1024 * 1024;
@@ -67,48 +62,43 @@ public class FileUploadTest extends ServerTestBase {
 
 	@Test
 	public void test() throws Throwable {
-		final HttpClient httpClient = newHttpClient();
+		try (final HttpClient httpClient = newHttpClient()) {
 
-		final CountDownLatch cdl = new CountDownLatch(UPLOAD_COUNT);
-		final AtomicReference<Throwable> error = new AtomicReference<>(null);
+			final CountDownLatch cdl = new CountDownLatch(UPLOAD_COUNT);
+			final AtomicReference<Throwable> error = new AtomicReference<>(null);
 
-		long fileSize = 0L;
+			long fileSize = 0L;
 
-		final Path[] files = new Path[UPLOAD_COUNT];
-		for (int i = 0; i < UPLOAD_COUNT; i++) {
-			files[i] = createInputFile();
-			fileSize += Files.size(files[i]);
+			final Path[] files = new Path[UPLOAD_COUNT];
+			for (int i = 0; i < UPLOAD_COUNT; i++) {
+				files[i] = createInputFile();
+				fileSize += Files.size(files[i]);
+			}
+
+			final long start = System.currentTimeMillis();
+
+			for (int i = 0; i < UPLOAD_COUNT; i++) {
+				final Path inputFile = files[i];
+				sendFile(httpClient, inputFile, cdl, error);
+			}
+
+			try {
+				cdl.await();
+
+				final long millis = System.currentTimeMillis() - start;
+				final long mib = fileSize / 1024 / 1024;
+				final double mibPerSec = Math.round(mib / (millis / 1000.0) * 100.0) / 100.0;
+				LOG.info("Took {} millis for {} MiB ({} MiB/s)", millis, mib, mibPerSec);
+
+			} finally {
+				LOG.info("Closing client");
+				httpClient.close();
+			}
+			if (error.get() != null) {
+				throw error.get();
+			}
+
 		}
-
-		final long start = System.currentTimeMillis();
-
-		for (int i = 0; i < UPLOAD_COUNT; i++) {
-			final Path inputFile = files[i];
-			sendFile(httpClient, inputFile, cdl, error);
-		}
-
-		try {
-			cdl.await();
-
-			final long millis = System.currentTimeMillis() - start;
-			final long mib = fileSize / 1024 / 1024;
-			final double mibPerSec = Math.round(mib / (millis / 1000.0) * 100.0) / 100.0;
-			LOG.info("Took {} millis for {} MiB ({} MiB/s)", millis, mib, mibPerSec);
-
-		} finally {
-			LOG.info("Closing client");
-			httpClient.close();
-		}
-		if (error.get() != null) {
-			throw error.get();
-		}
-	}
-
-	private HttpClient newHttpClient() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-		return HttpClient.newBuilder()
-				.trustStore(getClientTrustStore())
-				.keyStore(getClientKeyStore(), getClientKeyPassword())
-				.build();
 	}
 
 	public Path createInputFile() throws IOException {
@@ -151,14 +141,5 @@ public class FileUploadTest extends ServerTestBase {
 			}
 			cdl.countDown();
 		});
-	}
-
-	private static <T> BodyHandler<T> requireSuccess(final BodyHandler<T> onSuccess) {
-		return (statusCode, responseHeaders) -> {
-			if (statusCode < 200 || statusCode > 299) {
-				throw new RuntimeException("Non success status code: " + statusCode);
-			}
-			return onSuccess.apply(statusCode, responseHeaders);
-		};
 	}
 }

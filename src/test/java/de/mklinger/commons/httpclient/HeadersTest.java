@@ -6,9 +6,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
 import java.util.Enumeration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -20,18 +17,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import de.mklinger.commons.httpclient.HttpResponse.BodyHandler;
 
 /**
  * @author Marc Klinger - mklinger[at]mklinger[dot]de
  */
-public class HeadersTest extends ServerTestBase {
+public class HeadersTest extends ClientServerTestBase {
 	private static final String ECHO_HEADER_PREFIX = "X-Test-Echo-";
-
-	private static final Logger LOG = LoggerFactory.getLogger(HeadersTest.class);
 
 	@Override
 	protected Class<? extends Servlet> getServletClass() {
@@ -121,21 +112,5 @@ public class HeadersTest extends ServerTestBase {
 	private void assertNonExistingHeaderEchos(final HttpHeaders responseHeaders) {
 		assertThat(responseHeaders.allValues("doesnotexist"), empty());
 		assertThat(responseHeaders.firstValue("doesnotexist"), is(Optional.empty()));
-	}
-
-	private HttpClient newHttpClient() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-		return HttpClient.newBuilder()
-				.trustStore(getClientTrustStore())
-				.keyStore(getClientKeyStore(), getClientKeyPassword())
-				.build();
-	}
-
-	private static <T> BodyHandler<T> requireSuccess(final BodyHandler<T> onSuccess) {
-		return (statusCode, responseHeaders) -> {
-			if (statusCode < 200 || statusCode > 299) {
-				throw new RuntimeException("Non success status code: " + statusCode);
-			}
-			return onSuccess.apply(statusCode, responseHeaders);
-		};
 	}
 }
