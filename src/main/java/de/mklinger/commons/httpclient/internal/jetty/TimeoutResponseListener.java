@@ -40,7 +40,7 @@ public class TimeoutResponseListener extends ResponseListenerWrapper {
 		try {
 			cyclicTimeout.cancel();
 		} catch (final Throwable e) {
-			LOG.error("Error canelling timeout", e);
+			LOG.error("Error cancelling timeout", e);
 		}
 		super.onComplete(result);
 	}
