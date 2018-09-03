@@ -5,6 +5,7 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -24,6 +25,8 @@ import de.mklinger.commons.httpclient.HttpRequest;
  * @author Marc Klinger - mklinger[at]mklinger[dot]de
  */
 public class FileBodyProvider implements HttpRequest.BodyProvider {
+	private static final int CHUNK_SIZE = 1024 * 100;
+
 	private static final Logger LOG = LoggerFactory.getLogger(FileBodyProvider.class);
 
 	private final Path file;
@@ -36,12 +39,14 @@ public class FileBodyProvider implements HttpRequest.BodyProvider {
 	public Iterator<CompletableFuture<ByteBuffer>> iterator() {
 		try {
 			// FIXME how can we close this safely?
-			final AsynchronousFileChannel channel = AsynchronousFileChannel.open(file, StandardOpenOption.READ);
-			return new ChannelIterator(channel);
-
-			//			AsynchronousReadFileChannel channel = new AsynchronousReadFileChannel(file);
-			//			return new ChannelIterator(channel);
-
+			try {
+				final AsynchronousFileChannel channel = AsynchronousFileChannel.open(file, StandardOpenOption.READ);
+				return new AsynchronousFileChannelIterator(channel);
+			} catch (final UnsupportedOperationException e) {
+				LOG.info("Falling back to blocking file channel to read from {}", file);
+				final FileChannel channel = FileChannel.open(file,  StandardOpenOption.READ);
+				return new FileChannelIterator(channel);
+			}
 		} catch (final IOException e) {
 			throw new UncheckedIOException(e);
 		}
@@ -56,13 +61,12 @@ public class FileBodyProvider implements HttpRequest.BodyProvider {
 		}
 	}
 
-	private static class ChannelIterator implements Iterator<CompletableFuture<ByteBuffer>> {
-		private static final int CHUNK_SIZE = 1024 * 100;
+	private static class AsynchronousFileChannelIterator implements Iterator<CompletableFuture<ByteBuffer>> {
 		private final AsynchronousFileChannel channel;
 		private final AtomicLong position;
 		private final AtomicBoolean reading;
 
-		private ChannelIterator(final AsynchronousFileChannel channel) {
+		private AsynchronousFileChannelIterator(final AsynchronousFileChannel channel) {
 			this.channel = channel;
 			this.position = new AtomicLong(0L);
 			this.reading = new AtomicBoolean(false);
@@ -162,6 +166,80 @@ public class FileBodyProvider implements HttpRequest.BodyProvider {
 				}
 			}
 			cf.completeExceptionally(e);
+		}
+	}
+
+
+	private static class FileChannelIterator implements Iterator<CompletableFuture<ByteBuffer>> {
+		private final FileChannel channel;
+		private final AtomicBoolean reading;
+
+		private FileChannelIterator(final FileChannel channel) {
+			this.channel = channel;
+			this.reading = new AtomicBoolean(false);
+		}
+
+		@Override
+		public boolean hasNext() {
+			if (reading.get()) {
+				throw new IllegalStateException("Reading in progress");
+			}
+
+			try {
+				final boolean hasNext = channel.isOpen() && channel.position() < channel.size();
+				if (!hasNext) {
+					LOG.debug("Closing channel in hasNext()");
+					channel.close();
+				}
+				return hasNext;
+			} catch (final IOException e) {
+				throw new UncheckedIOException(e);
+			}
+		}
+
+		@Override
+		public CompletableFuture<ByteBuffer> next() {
+			if (!reading.compareAndSet(false, true)) {
+				throw new IllegalStateException("Reading in progress");
+			}
+
+			// Read blocking :-(
+			final ByteBuffer byteBuffer = ByteBuffer.allocate(CHUNK_SIZE);
+			try {
+				channel.read(byteBuffer);
+				byteBuffer.flip();
+				unsetReading();
+			} catch (final Throwable e) {
+				closeChannelAndRethrowUncheckedAfterRead(e);
+			}
+
+			return CompletableFuture.completedFuture(byteBuffer);
+		}
+
+		private void closeChannelAndRethrowUncheckedAfterRead(final Throwable e1) {
+			final RuntimeException ex;
+			if (e1 instanceof IOException) {
+				ex = new UncheckedIOException((IOException) e1);
+			} else {
+				ex = new RuntimeException(e1);
+			}
+			try {
+				channel.close();
+			} catch (final Throwable e2) {
+				ex.addSuppressed(e2);
+			}
+			try {
+				unsetReading();
+			} catch (final Throwable e2) {
+				ex.addSuppressed(e2);
+			}
+			throw ex;
+		}
+
+		private void unsetReading() {
+			if (!reading.compareAndSet(true, false)) {
+				throw new IllegalStateException("Reading was not in progress");
+			}
 		}
 	}
 }
