@@ -3,6 +3,7 @@ package de.mklinger.commons.httpclient.internal.jetty;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.client.api.Response.Listener;
@@ -23,6 +24,7 @@ import de.mklinger.commons.httpclient.internal.HttpHeadersImpl;
 public class FullCompleteListener<T> extends Listener.Adapter {
 	private static final Logger LOG = LoggerFactory.getLogger(FullCompleteListener.class);
 
+	private final Executor completionExecutor;
 	private final CompletableFuture<T> result;
 	private final HttpResponse.BodyHandler<T> responseBodyHandler;
 
@@ -32,7 +34,8 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 
 	private volatile BodyCompleteListener<T> bodyCompleteListener;
 
-	public FullCompleteListener(final HttpResponse.BodyHandler<T> responseBodyHandler) {
+	public FullCompleteListener(final Executor completionExecutor, final HttpResponse.BodyHandler<T> responseBodyHandler) {
+		this.completionExecutor = completionExecutor;
 		this.result = new CompletableFuture<>();
 		this.responseBodyHandler = responseBodyHandler;
 	}
@@ -83,7 +86,7 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 			} else {
 				try {
 					bodyCompleteListener.onComplete();
-					this.result.complete(bodyCompleteListener.getBody());
+					complete(bodyCompleteListener.getBody());
 				} catch (final Throwable e) {
 					handleError(null, e);
 				}
@@ -98,7 +101,7 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 					l.close();
 				} catch (final Throwable e) {
 					// TODO call handleError() from here?
-					this.result.completeExceptionally(e);
+					completeExceptionally(e);
 				}
 			}
 
@@ -125,12 +128,20 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 		}
 
 		try {
-			result.completeExceptionally(e);
+			completeExceptionally(e);
 		} catch (final Throwable suppressed) {
 			e.addSuppressed(suppressed);
 		}
 
 		LOG.debug("Error in complete listener", e);
+	}
+
+	private void complete(final T result) {
+		completionExecutor.execute(() -> this.result.complete(result));
+	}
+
+	private void completeExceptionally(final Throwable e) {
+		completionExecutor.execute(() -> this.result.completeExceptionally(e));
 	}
 
 	public CompletableFuture<T> getResult() {

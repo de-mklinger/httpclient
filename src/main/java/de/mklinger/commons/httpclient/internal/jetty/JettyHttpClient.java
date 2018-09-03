@@ -6,6 +6,8 @@ import java.time.Duration;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -81,7 +83,9 @@ public class JettyHttpClient implements HttpClient {
 			applyHeaders(request, jettyRequest);
 			applyBody(request, jettyRequest);
 
-			final FullCompleteListener<T> fullCompleteListener = new FullCompleteListener<>(responseBodyHandler);
+			//final Executor completionExecutor = getJettyClient().getExecutor();
+			final Executor completionExecutor = ForkJoinPool.commonPool();
+			final FullCompleteListener<T> fullCompleteListener = new FullCompleteListener<>(completionExecutor, responseBodyHandler);
 
 			final CompleteListener possibleTimeoutCompleteListener = applyTimeout(request, jettyRequest, fullCompleteListener);
 
