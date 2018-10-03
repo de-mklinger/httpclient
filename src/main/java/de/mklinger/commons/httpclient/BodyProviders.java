@@ -1,13 +1,16 @@
 package de.mklinger.commons.httpclient;
 
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.function.Supplier;
 
 import de.mklinger.commons.httpclient.HttpRequest.BodyProvider;
 import de.mklinger.commons.httpclient.internal.ByteArrayBodyProvider;
 import de.mklinger.commons.httpclient.internal.ByteBufferBodyProvider;
 import de.mklinger.commons.httpclient.internal.ContentTypeBodyProvider;
 import de.mklinger.commons.httpclient.internal.FileBodyProvider;
+import de.mklinger.commons.httpclient.internal.InputStreamBodyProvider;
 import de.mklinger.commons.httpclient.internal.NoBodyProvider;
 
 /**
@@ -31,6 +34,10 @@ public class BodyProviders {
 
 	public static BodyProvider fromFile(final Path file) {
 		return new FileBodyProvider(file);
+	}
+
+	public static BodyProvider fromInputStream(final Supplier<InputStream> inputStreamSupplier) {
+		return new InputStreamBodyProvider(inputStreamSupplier);
 	}
 
 	public static BodyProvider contentType(final String contentType, final BodyProvider bodyProvider) {
