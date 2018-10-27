@@ -41,7 +41,7 @@ public class FileCompleteListener implements HttpResponse.BodyCompleteListener<P
 			channel = Files.newByteChannel(targetFile, openOptions);
 		}
 
-		LOG.info("Writing {} bytes", content.remaining());
+		LOG.debug("Writing {} bytes", content.remaining());
 		channel.write(content);
 	}
 
