@@ -1,6 +1,7 @@
 package de.mklinger.commons.httpclient;
 
 import java.security.KeyStore;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 import de.mklinger.commons.httpclient.internal.HttpClientBuilderImpl;
@@ -39,6 +40,16 @@ public interface HttpClient extends AutoCloseable {
 		 * @param keyPassword the password for recovering keys in the KeyStore
 		 */
 		Builder keyStore(KeyStore keyStore, String keyPassword);
+
+		/**
+		 * Sets the connect timeout duration for this client.
+		 *
+		 * @param duration the duration to allow the underlying connection to be
+		 *                 established
+		 * @return this builder
+		 * @throws IllegalArgumentException if the duration is non-positive
+		 */
+		Builder connectTimeout(Duration duration);
 
 		/**
 		 * Specifies whether requests will automatically follow redirects issued

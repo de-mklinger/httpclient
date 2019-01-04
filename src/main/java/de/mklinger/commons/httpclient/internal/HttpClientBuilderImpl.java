@@ -1,7 +1,10 @@
 package de.mklinger.commons.httpclient.internal;
 
+import static java.util.Objects.requireNonNull;
+
 import java.security.KeyStore;
 import java.security.Security;
+import java.time.Duration;
 
 import org.conscrypt.OpenSSLProvider;
 import org.eclipse.jetty.http2.client.HTTP2Client;
@@ -9,6 +12,7 @@ import org.eclipse.jetty.http2.client.http.HttpClientTransportOverHTTP2;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import de.mklinger.commons.httpclient.HttpClient;
+import de.mklinger.commons.httpclient.HttpClient.Builder;
 import de.mklinger.commons.httpclient.internal.jetty.JettyHttpClient;
 
 /**
@@ -18,6 +22,9 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 	private KeyStore trustStore;
 	private KeyStore keyStore;
 	private String keyPassword;
+
+	// Currently defaults to Jetty's default connect timeout, which is 15 seconds
+	private Duration connectTimeout;
 
 	// Stick to JDK client default:
 	private boolean followRedirects = false;
@@ -51,6 +58,16 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 	}
 
 	@Override
+	public Builder connectTimeout(final Duration duration) {
+		requireNonNull(duration);
+		if (duration.isNegative() || duration.isZero()) {
+			throw new IllegalArgumentException("Invalid duration: " + duration);
+		}
+		this.connectTimeout = duration;
+		return this;
+	}
+
+	@Override
 	public HttpClient.Builder followRedirects(final boolean followRedirects) {
 		this.followRedirects = followRedirects;
 		return this;
@@ -78,6 +95,14 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 		final HttpClientTransportOverHTTP2 clientTransport = new HttpClientTransportOverHTTP2(http2Client);
 
 		final org.eclipse.jetty.client.HttpClient jettyClient = new org.eclipse.jetty.client.HttpClient(clientTransport, sslContextFactory);
+
+		if (connectTimeout != null) {
+			final long timeoutMillis = connectTimeout.toMillis();
+			jettyClient.setConnectTimeout(timeoutMillis);
+			if (timeoutMillis < jettyClient.getAddressResolutionTimeout()) {
+				jettyClient.setAddressResolutionTimeout(timeoutMillis);
+			}
+		}
 
 		jettyClient.setFollowRedirects(followRedirects);
 
