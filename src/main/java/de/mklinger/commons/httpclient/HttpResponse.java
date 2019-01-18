@@ -15,6 +15,16 @@ public interface HttpResponse<T> {
 	int statusCode();
 
 	/**
+	 * Returns the {@link HttpRequest} corresponding to this response.
+	 *
+	 * <p> The returned {@code HttpRequest} may not be the initiating request
+	 * if redirection occured.
+	 *
+	 * @return the request
+	 */
+	HttpRequest request();
+
+	/**
 	 * Returns the received response headers.
 	 *
 	 * @return the response headers

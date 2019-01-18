@@ -1,6 +1,5 @@
 package de.mklinger.commons.httpclient.internal.jetty;
 
-import java.net.URI;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Iterator;
@@ -22,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.mklinger.commons.httpclient.HttpClient;
-import de.mklinger.commons.httpclient.HttpHeaders;
 import de.mklinger.commons.httpclient.HttpRequest;
 import de.mklinger.commons.httpclient.HttpRequest.BodyProvider;
 import de.mklinger.commons.httpclient.HttpResponse;
@@ -93,7 +91,7 @@ public class JettyHttpClient implements HttpClient {
 			jettyRequest.send(possibleTimeoutCompleteListener);
 
 			return fullCompleteListener.getResult()
-					.thenApply(result -> toHttpResponse(fullCompleteListener, result));
+					.thenApply(this::toHttpResponse);
 
 		} catch (final Throwable e) {
 			// TODO is this a good pattern? Better directly throw?
@@ -290,21 +288,13 @@ public class JettyHttpClient implements HttpClient {
 		return -1;
 	}
 
-	private <T> HttpResponse<T> toHttpResponse(final FullCompleteListener<?> fullCompleteListener, final T result) {
-		return toHttpResponse(
-				fullCompleteListener.getUri(),
-				fullCompleteListener.getStatusCode(),
-				fullCompleteListener.getResponseHeaders(),
-				result);
-	}
-
-	private <T> HttpResponse<T> toHttpResponse(final URI uri, final int statusCode, final HttpHeaders responseHeaders, final T result) {
+	private <T> HttpResponse<T> toHttpResponse(final BodyResult<T> result) {
 		LOG.debug("Building final HttpResponse");
 		return new JettyHttpResponse<>(
-				uri,
-				statusCode,
-				responseHeaders,
-				result);
+				result.getResult().getResponse().getStatus(),
+				new JettyHttpRequest(result.getResult().getRequest()),
+				HeadersTransformation.toHttpHeaders(result.getResult().getResponse().getHeaders()),
+				result.getBody());
 	}
 
 	@Override

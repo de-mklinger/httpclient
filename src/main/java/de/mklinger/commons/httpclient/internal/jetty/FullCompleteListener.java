@@ -1,6 +1,5 @@
 package de.mklinger.commons.httpclient.internal.jetty;
 
-import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -8,15 +7,12 @@ import java.util.concurrent.Executor;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.client.api.Response.Listener;
 import org.eclipse.jetty.client.api.Result;
-import org.eclipse.jetty.http.HttpField;
-import org.eclipse.jetty.http.HttpFields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.mklinger.commons.httpclient.HttpHeaders;
 import de.mklinger.commons.httpclient.HttpResponse;
 import de.mklinger.commons.httpclient.HttpResponse.BodyCompleteListener;
-import de.mklinger.commons.httpclient.internal.HttpHeadersImpl;
 
 /**
  * @author Marc Klinger - mklinger[at]mklinger[dot]de
@@ -25,12 +21,8 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 	private static final Logger LOG = LoggerFactory.getLogger(FullCompleteListener.class);
 
 	private final Executor completionExecutor;
-	private final CompletableFuture<T> result;
+	private final CompletableFuture<BodyResult<T>> result;
 	private final HttpResponse.BodyHandler<T> responseBodyHandler;
-
-	private volatile URI uri;
-	private volatile int statusCode;
-	private volatile HttpHeaders responseHeaders;
 
 	private volatile BodyCompleteListener<T> bodyCompleteListener;
 
@@ -42,9 +34,8 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 
 	@Override
 	public void onHeaders(final Response response) {
-		uri = response.getRequest().getURI();
-		statusCode = response.getStatus();
-		responseHeaders = toHttpHeaders(response.getHeaders());
+		final int statusCode = response.getStatus();
+		final HttpHeaders responseHeaders = HeadersTransformation.toHttpHeaders(response.getHeaders());
 
 		LOG.debug("Response: Have headers, setting up body handling");
 		LOG.debug("Headers: {}", responseHeaders.map());
@@ -54,17 +45,6 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 		} catch (final Throwable e) {
 			handleError(response, e);
 		}
-	}
-
-	private HttpHeaders toHttpHeaders(final HttpFields jettyHeaders) {
-		final HttpHeadersImpl httpHeaders = new HttpHeadersImpl();
-		for (final HttpField jettyHeader : jettyHeaders) {
-			final String name = jettyHeader.getName();
-			for (final String value : jettyHeader.getValues()) {
-				httpHeaders.addHeader(name, value);
-			}
-		}
-		return httpHeaders;
 	}
 
 	@Override
@@ -86,7 +66,7 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 			} else {
 				try {
 					bodyCompleteListener.onComplete();
-					complete(bodyCompleteListener.getBody());
+					complete(new BodyResult<>(result, bodyCompleteListener.getBody()));
 				} catch (final Throwable e) {
 					handleError(null, e);
 				}
@@ -136,27 +116,15 @@ public class FullCompleteListener<T> extends Listener.Adapter {
 		LOG.debug("Error in complete listener", e);
 	}
 
-	private void complete(final T result) {
-		completionExecutor.execute(() -> this.result.complete(result));
+	private void complete(final BodyResult<T> bodyResult) {
+		completionExecutor.execute(() -> this.result.complete(bodyResult));
 	}
 
 	private void completeExceptionally(final Throwable e) {
 		completionExecutor.execute(() -> this.result.completeExceptionally(e));
 	}
 
-	public CompletableFuture<T> getResult() {
+	public CompletableFuture<BodyResult<T>> getResult() {
 		return result;
-	}
-
-	public URI getUri() {
-		return uri;
-	}
-
-	public int getStatusCode() {
-		return statusCode;
-	}
-
-	public HttpHeaders getResponseHeaders() {
-		return responseHeaders;
 	}
 }
