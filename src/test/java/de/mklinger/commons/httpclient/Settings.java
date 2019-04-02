@@ -12,7 +12,7 @@ public class Settings {
 	final static Properties props;
 	static {
 		props = new Properties();
-		try (InputStream in = ConscryptHTTP2Server.class.getClassLoader().getResourceAsStream("application-testkeys.properties")) {
+		try (InputStream in = ConscryptHTTP2Server.class.getClassLoader().getResourceAsStream("testkeys/testkeys.properties")) {
 			props.load(in);
 		} catch (final IOException e) {
 			throw new UncheckedIOException(e);
