@@ -55,7 +55,7 @@ public class JettyHttpClient implements HttpClient {
 		public void beanAdded(final Container parent, final Object child) {
 			if (child instanceof HTTP2Session) {
 				final HTTP2Session session = (HTTP2Session) child;
-				LOG.info("Opened HTTP/2 session: {}", session.getEndPoint().getRemoteAddress());
+				LOG.debug("Opened HTTP/2 session: {}", session.getEndPoint().getRemoteAddress());
 				openSessions.incrementAndGet();
 			}
 		}
@@ -64,7 +64,7 @@ public class JettyHttpClient implements HttpClient {
 		public void beanRemoved(final Container parent, final Object child) {
 			if (child instanceof HTTP2Session) {
 				final HTTP2Session session = (HTTP2Session) child;
-				LOG.info("Closed HTTP/2 session: {}", session.getEndPoint().getRemoteAddress());
+				LOG.debug("Closed HTTP/2 session: {}", session.getEndPoint().getRemoteAddress());
 				openSessions.decrementAndGet();
 			}
 		}
