@@ -47,8 +47,8 @@
 	</scm>
 
 	<properties>
-		<jetty.version>9.4.11.v20180605</jetty.version>
-		<conscrypt.version>1.4.0</conscrypt.version>
+		<jetty.version>9.4.26.v20200117</jetty.version>
+		<conscrypt.version>2.2.1</conscrypt.version>
 	</properties>
 
 	<dependencyManagement>
@@ -138,6 +138,13 @@
 			<plugin>
 				<groupId>org.apache.felix</groupId>
 				<artifactId>maven-bundle-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<trimStackTrace>false</trimStackTrace>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

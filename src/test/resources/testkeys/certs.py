@@ -7,17 +7,17 @@ import datetime
 
 def main():
     ca_cert_file, ca_key_file, ca_pkcs12_cert_file = generate_ca("testca")
-    generate_server("test-server", ca_cert_file, ca_key_file)
-    generate_client("test-client", ca_cert_file, ca_key_file)
+    generate_server("test-server", ca_cert_file, ca_key_file, days=3650)
+    generate_client("test-client", ca_cert_file, ca_key_file, days=3650)
 
-def generate_ca(cn):
+def generate_ca(cn, days=30):
     key = genrsa_pkcs8()
     key_file = "ca-key.pem"
     write_to_file(key_file, key)
 
     csr = generate_csr(key_file, cn, o="mklinger GmbH")
     
-    cert = generate_ca_cert(csr, key_file)
+    cert = generate_ca_cert(csr, key_file, days)
     cert_file = "ca-cert.pem"
     write_to_file(cert_file, cert)
 
@@ -27,7 +27,7 @@ def generate_ca(cn):
 
     return (cert_file, key_file, pkcs12_cert_file)
 
-def generate_server(cn, ca_cert_file, ca_key_file):
+def generate_server(cn, ca_cert_file, ca_key_file, days=90):
     key = genrsa_pkcs8()
     key_file = "server-key.pem"
     write_to_file(key_file, key)
@@ -38,7 +38,8 @@ def generate_server(cn, ca_cert_file, ca_key_file):
                 clientAuth=False,
                 serverAuth=True,
                 dnsSans = [ "localhost" ], 
-                ipSans = [ "127.0.0.1" ])
+                ipSans = [ "127.0.0.1" ],
+                days = days)
     
     cert_file = "server-cert.pem"
     write_to_file(cert_file, cert)
@@ -52,7 +53,7 @@ def generate_server(cn, ca_cert_file, ca_key_file):
 
     return (cert_file, key_file, pkcs12)
 
-def generate_client(cn, ca_cert_file, ca_key_file):
+def generate_client(cn, ca_cert_file, ca_key_file, days=90):
     key = genrsa_pkcs8()
     key_file = "client-key.pem".format(cn)
     write_to_file(key_file, key)
@@ -61,7 +62,8 @@ def generate_client(cn, ca_cert_file, ca_key_file):
     
     cert = generate_cert(csr, ca_cert_file, ca_key_file,
                 clientAuth=True,
-                serverAuth=False)
+                serverAuth=False,
+                days = days)
     
     cert_file = "client-cert.pem".format(cn)
     write_to_file(cert_file, cert)

@@ -6,6 +6,7 @@ import java.security.KeyStore;
 import java.security.Security;
 import java.time.Duration;
 
+import org.conscrypt.Conscrypt;
 import org.conscrypt.OpenSSLProvider;
 import org.eclipse.jetty.http2.client.HTTP2Client;
 import org.eclipse.jetty.http2.client.http.HttpClientTransportOverHTTP2;
@@ -13,6 +14,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import de.mklinger.commons.httpclient.HttpClient;
 import de.mklinger.commons.httpclient.HttpClient.Builder;
+import de.mklinger.commons.httpclient.internal.hostnameverifier.DefaultHostnameVerifier;
 import de.mklinger.commons.httpclient.internal.jetty.JettyHttpClient;
 
 /**
@@ -77,7 +79,10 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 	public HttpClient build() {
 		addSecurityProvider();
 
-		final SslContextFactory sslContextFactory = new SslContextFactory();
+		final DefaultHostnameVerifier defaultHostnameVerifier = new DefaultHostnameVerifier();
+		Conscrypt.setDefaultHostnameVerifier(defaultHostnameVerifier::verify);
+
+		final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
 		sslContextFactory.setProvider("Conscrypt");
 
 		if (trustStore != null) {

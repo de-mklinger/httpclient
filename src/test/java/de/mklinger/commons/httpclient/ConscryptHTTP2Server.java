@@ -68,7 +68,8 @@ public class ConscryptHTTP2Server
 		httpsConfig.setSecurePort(port);
 		httpsConfig.addCustomizer(new SecureRequestCustomizer());
 
-		final SslContextFactory sslContextFactory = new SslContextFactory();
+
+		final SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
 		sslContextFactory.setProvider("Conscrypt");
 		sslContextFactory.setKeyStorePath(Settings.get("server.ssl.key-store").replace("classpath:", "src/test/resources/"));
 		sslContextFactory.setKeyStorePassword(Settings.get("server.ssl.key-store-password"));
