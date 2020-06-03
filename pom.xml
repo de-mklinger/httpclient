@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>de.mklinger.maven</groupId>
 		<artifactId>maven-parent</artifactId>
-		<version>1.11</version>
+		<version>1.21</version>
 	</parent>
 
 	<groupId>de.mklinger.commons</groupId>
@@ -47,8 +47,8 @@
 	</scm>
 
 	<properties>
-		<jetty.version>9.4.26.v20200117</jetty.version>
-		<conscrypt.version>2.2.1</conscrypt.version>
+		<jetty.version>9.4.29.v20200521</jetty.version>
+		<conscrypt.version>2.4.0</conscrypt.version>
 	</properties>
 
 	<dependencyManagement>
