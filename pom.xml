@@ -10,7 +10,7 @@
 
 	<groupId>de.mklinger.commons</groupId>
 	<artifactId>httpclient</artifactId>
-	<version>0.7-SNAPSHOT</version>
+	<version>0.7</version>
 	<packaging>bundle</packaging>
 
 	<name>${project.artifactId}</name>
@@ -43,7 +43,7 @@
 		<connection>scm:git:git@github.com:de-mklinger/httpclient.git</connection>
 		<developerConnection>scm:git:git@github.com:de-mklinger/httpclient.git</developerConnection>
 		<url>https://github.com/de-mklinger/httpclient</url>
-		<tag>HEAD</tag>
+		<tag>httpclient-0.7</tag>
 	</scm>
 
 	<properties>
