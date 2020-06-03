@@ -5,12 +5,14 @@ import static java.util.Objects.requireNonNull;
 import java.security.KeyStore;
 import java.security.Security;
 import java.time.Duration;
+import java.util.concurrent.Executor;
 
 import org.conscrypt.Conscrypt;
 import org.conscrypt.OpenSSLProvider;
 import org.eclipse.jetty.http2.client.HTTP2Client;
 import org.eclipse.jetty.http2.client.http.HttpClientTransportOverHTTP2;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import de.mklinger.commons.httpclient.HttpClient;
 import de.mklinger.commons.httpclient.HttpClient.Builder;
@@ -30,6 +32,8 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 
 	// Stick to JDK client default:
 	private boolean followRedirects = false;
+
+	private String name = "HttpClient";
 
 	private static volatile boolean securityProviderAdded = false;
 
@@ -76,6 +80,12 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 	}
 
 	@Override
+	public Builder name(String name) {
+		this.name = name;
+		return this;
+	}
+
+	@Override
 	public HttpClient build() {
 		addSecurityProvider();
 
@@ -111,6 +121,8 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 
 		jettyClient.setFollowRedirects(followRedirects);
 
+		jettyClient.setExecutor(newExecutor(getClass().getClassLoader(), name));
+
 		try {
 			jettyClient.start();
 		} catch (final Exception e) {
@@ -118,5 +130,11 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 		}
 
 		return new JettyHttpClient(jettyClient);
+	}
+
+	private Executor newExecutor(ClassLoader classLoader, String name) {
+		final QueuedThreadPool threadPool = new ThreadContextClassLoaderQueuedThreadPool(classLoader);
+		threadPool.setName(name);
+		return threadPool;
 	}
 }

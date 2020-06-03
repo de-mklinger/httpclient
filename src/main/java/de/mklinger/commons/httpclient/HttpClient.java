@@ -63,6 +63,13 @@ public interface HttpClient extends AutoCloseable {
 		Builder followRedirects(boolean followRedirects);
 
 		/**
+		 * Set the name of this HTTP client.
+		 *
+		 * @return this builder
+		 */
+		Builder name(String name);
+
+		/**
 		 * Returns a new {@link HttpClient} built from the current state of this
 		 * builder.
 		 *
