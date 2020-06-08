@@ -1,21 +1,17 @@
 package de.mklinger.commons.httpclient.internal.jetty;
 
-import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.jetty.client.api.ContentProvider;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response.CompleteListener;
-import org.eclipse.jetty.client.util.DeferredContentProvider;
 import org.eclipse.jetty.http2.HTTP2Session;
-import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.component.Container;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +21,7 @@ import de.mklinger.commons.httpclient.HttpRequest;
 import de.mklinger.commons.httpclient.HttpRequest.BodyProvider;
 import de.mklinger.commons.httpclient.HttpResponse;
 import de.mklinger.commons.httpclient.HttpResponse.BodyHandler;
+import de.mklinger.commons.httpclient.internal.NoBodyProvider;
 
 /**
  * @author Marc Klinger - mklinger[at]mklinger[dot]de
@@ -144,149 +141,156 @@ public class JettyHttpClient implements HttpClient {
 
 		final BodyProvider bodyProvider = optionalBodyProvider.get();
 
-		final long contentLength = getContentLength(bodyProvider);
-		if (contentLength == 0) {
-			return;
+		//		final long contentLength = getContentLength(bodyProvider);
+		//		if (contentLength == 0) {
+		//			return;
+		//		}
+		if (!(bodyProvider instanceof NoBodyProvider)) {
+			jettyRequest.content((ContentProvider) bodyProvider);
 		}
 
-		final Optional<String> bodyProviderContentType = bodyProvider.contentType();
-		if (bodyProviderContentType.isPresent() && jettyRequest.getHeaders().get("Content-Type") == null) {
-			jettyRequest.header("Content-Type", bodyProviderContentType.get());
-		}
-
-		final DeferredContentProvider deferredContentProvider = new DeferredContentProvider() {
-			@Override
-			public long getLength() {
-				return contentLength;
-			}
-		};
-
-		final RequestBodyFiller requestBodyFiller = new RequestBodyFiller(bodyProvider.iterator(), deferredContentProvider, jettyRequest);
-		requestBodyFiller.start();
-
-		jettyRequest.content(deferredContentProvider);
+		//		final Optional<String> bodyProviderContentType = bodyProvider.contentType();
+		//		if (bodyProviderContentType.isPresent() && jettyRequest.getHeaders().get("Content-Type") == null) {
+		//			jettyRequest.header("Content-Type", bodyProviderContentType.get());
+		//		}
+		//
+		//		final DeferredContentProvider deferredContentProvider = new DeferredContentProvider() {
+		//			@Override
+		//			public long getLength() {
+		//				return contentLength;
+		//			}
+		//		};
+		//
+		//		final RequestBodyFiller requestBodyFiller = new RequestBodyFiller(bodyProvider.iterator(), deferredContentProvider, jettyRequest);
+		//		requestBodyFiller.start();
+		//
+		//		jettyRequest.content(deferredContentProvider);
 	}
 
-	private static class RequestBodyFiller {
-		private final Iterator<CompletableFuture<ByteBuffer>> chunkFutureIterator;
-		private final DeferredContentProvider deferredContentProvider;
-		private final Request jettyRequest;
-		private final AtomicReference<Throwable> error = new AtomicReference<>();
+	//	private static class RequestBodyFiller {
+	//		private final Iterator<CompletableFuture<ByteBuffer>> chunkFutureIterator;
+	//		private final DeferredContentProvider deferredContentProvider;
+	//		private final Request jettyRequest;
+	//		private final AtomicReference<Throwable> error = new AtomicReference<>();
+	//
+	//		private final Object pendingLock = new Object();
+	//		private long pendingOffers = 0L;
+	//		private boolean pendingRead = false;
+	//
+	//		private final static long MAX_PENDING_OFFERS = 5;
+	//
+	//		private final Callback offerCallback = new Callback() {
+	//			@Override
+	//			public void succeeded() {
+	//				synchronized (pendingLock) {
+	//					pendingOffers--;
+	//					fillIfPossible();
+	//				}
+	//			}
+	//
+	//			@Override
+	//			public void failed(final Throwable e) {
+	//				synchronized (pendingLock) {
+	//					pendingOffers--;
+	//				}
+	//				error(e);
+	//			}
+	//		};
+	//
+	//		public RequestBodyFiller(final Iterator<CompletableFuture<ByteBuffer>> chunkFutureIterator, final DeferredContentProvider deferredContentProvider, final Request jettyRequest) {
+	//			this.chunkFutureIterator = chunkFutureIterator;
+	//			this.deferredContentProvider = deferredContentProvider;
+	//			this.jettyRequest = jettyRequest;
+	//		}
+	//
+	//		private void fillIfPossible() {
+	//			if (!Thread.holdsLock(pendingLock)) {
+	//				throw new IllegalStateException();
+	//			}
+	//			if (pendingOffers < MAX_PENDING_OFFERS && !pendingRead) {
+	//				LOG.debug("Filling with {} pending offers", pendingOffers);
+	//				fill();
+	//			}
+	//		}
+	//
+	//		public void start() {
+	//			synchronized (pendingLock) {
+	//				fill();
+	//			}
+	//		}
+	//
+	//		private void fill() {
+	//			if (isError()) {
+	//				return;
+	//			}
+	//			try {
+	//
+	//				if (!Thread.holdsLock(pendingLock)) {
+	//					throw new IllegalStateException();
+	//				}
+	//				if (pendingRead) {
+	//					throw new IllegalStateException();
+	//				}
+	//				pendingRead = true;
+	//
+	//				if (chunkFutureIterator.hasNext()) {
+	//					chunkFutureIterator.next().whenComplete(this::chunkFutureComplete);
+	//				} else {
+	//					done();
+	//				}
+	//			} catch (final Throwable e) {
+	//				error(e);
+	//			}
+	//		}
+	//
+	//
+	//		private void chunkFutureComplete(final ByteBuffer byteBuffer, final Throwable error) {
+	//			if (error != null) {
+	//				error(error);
+	//				return;
+	//			}
+	//
+	//			LOG.debug("Offering byte buffer with {} bytes", byteBuffer.remaining());
+	//
+	//			final boolean success = deferredContentProvider.offer(byteBuffer, offerCallback);
+	//			if (!success) {
+	//				error(new RuntimeException("Failed to offer content to deferred content provider"));
+	//			}
+	//
+	//			synchronized (pendingLock) {
+	//				pendingOffers++;
+	//				pendingRead = false;
+	//				fillIfPossible();
+	//			}
+	//		}
+	//
+	//		private void done() {
+	//			LOG.debug("Done");
+	//			deferredContentProvider.close();
+	//		}
+	//
+	//		public void error(final Throwable error) {
+	//			LOG.debug("Error", error);
+	//			final boolean set = this.error.compareAndSet(null, error);
+	//			if (!set && this.error.get() != error) {
+	//				this.error.get().addSuppressed(error);
+	//			}
+	//			jettyRequest.abort(this.error.get());
+	//			deferredContentProvider.close();
+	//		}
+	//
+	//		public boolean isError() {
+	//			return error.get() != null;
+	//		}
+	//	}
 
-		private final Object pendingLock = new Object();
-		private long pendingOffers = 0L;
-		private boolean pendingRead = false;
-
-		private final static long MAX_PENDING_OFFERS = 5;
-
-		private final Callback offerCallback = new Callback() {
-			@Override
-			public void succeeded() {
-				synchronized (pendingLock) {
-					pendingOffers--;
-					fillIfPossible();
-				}
-			}
-
-			@Override
-			public void failed(final Throwable e) {
-				synchronized (pendingLock) {
-					pendingOffers--;
-				}
-				error(e);
-			}
-		};
-
-		public RequestBodyFiller(final Iterator<CompletableFuture<ByteBuffer>> chunkFutureIterator, final DeferredContentProvider deferredContentProvider, final Request jettyRequest) {
-			this.chunkFutureIterator = chunkFutureIterator;
-			this.deferredContentProvider = deferredContentProvider;
-			this.jettyRequest = jettyRequest;
-		}
-
-		private void fillIfPossible() {
-			if (!Thread.holdsLock(pendingLock)) {
-				throw new IllegalStateException();
-			}
-			if (pendingOffers < MAX_PENDING_OFFERS && !pendingRead) {
-				LOG.debug("Filling with {} pending offers", pendingOffers);
-				fill();
-			}
-		}
-
-		public void start() {
-			synchronized (pendingLock) {
-				fill();
-			}
-		}
-
-		private void fill() {
-			if (isError()) {
-				return;
-			}
-			try {
-
-				if (!Thread.holdsLock(pendingLock)) {
-					throw new IllegalStateException();
-				}
-				if (pendingRead) {
-					throw new IllegalStateException();
-				}
-				pendingRead = true;
-
-				if (chunkFutureIterator.hasNext()) {
-					chunkFutureIterator.next().whenComplete(this::chunkFutureComplete);
-				} else {
-					done();
-				}
-			} catch (final Throwable e) {
-				error(e);
-			}
-		}
-
-
-		private void chunkFutureComplete(final ByteBuffer byteBuffer, final Throwable error) {
-			if (error != null) {
-				error(error);
-				return;
-			}
-
-			final boolean success = deferredContentProvider.offer(byteBuffer, offerCallback);
-			if (!success) {
-				error(new RuntimeException("Failed to offer content to deferred content provider"));
-			}
-
-			synchronized (pendingLock) {
-				pendingOffers++;
-				pendingRead = false;
-				fillIfPossible();
-			}
-		}
-
-		private void done() {
-			deferredContentProvider.close();
-		}
-
-		public void error(final Throwable error) {
-			final boolean set = this.error.compareAndSet(null, error);
-			if (!set && this.error.get() != error) {
-				this.error.get().addSuppressed(error);
-			}
-			jettyRequest.abort(this.error.get());
-			deferredContentProvider.close();
-		}
-
-		public boolean isError() {
-			return error.get() != null;
-		}
-	}
-
-	private long getContentLength(final BodyProvider bodyProvider) {
-		final long contentLength = bodyProvider.contentLength();
-		if (contentLength >= 0) {
-			return contentLength;
-		}
-		return -1;
-	}
+	//	private long getContentLength(final BodyProvider bodyProvider) {
+	//		final long contentLength = bodyProvider.contentLength();
+	//		if (contentLength >= 0) {
+	//			return contentLength;
+	//		}
+	//		return -1;
+	//	}
 
 	private <T> HttpResponse<T> toHttpResponse(final BodyResult<T> result) {
 		LOG.debug("Building final HttpResponse");

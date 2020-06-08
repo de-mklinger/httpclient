@@ -1,27 +1,27 @@
 package de.mklinger.commons.httpclient.internal;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Iterator;
-import java.util.concurrent.CompletableFuture;
+
+import org.eclipse.jetty.client.api.ContentProvider;
 
 import de.mklinger.commons.httpclient.HttpRequest;
 
-public class NoBodyProvider implements HttpRequest.BodyProvider {
+public class NoBodyProvider implements HttpRequest.BodyProvider, ContentProvider {
 	private static final NoBodyProvider INSTANCE = new NoBodyProvider();
 
 	public static NoBodyProvider getInstance() {
 		return INSTANCE;
 	}
 
-	private NoBodyProvider() {}
-
 	@Override
-	public long contentLength() {
-		return 0;
+	public Iterator<ByteBuffer> iterator() {
+		return Collections.emptyIterator();
 	}
 
 	@Override
-	public Iterator<CompletableFuture<ByteBuffer>> iterator() {
-		throw new UnsupportedOperationException();
+	public long getLength() {
+		return 0;
 	}
 }

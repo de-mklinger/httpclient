@@ -1,10 +1,8 @@
 package de.mklinger.commons.httpclient;
 
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * @author Marc Klinger - mklinger[at]mklinger[dot]de
@@ -51,18 +49,21 @@ public interface HttpRequest {
 	 */
 	HttpHeaders headers();
 
-	public interface BodyProvider extends Iterable<CompletableFuture<ByteBuffer>> {
-		long contentLength();
-
-		/**
-		 * Get an optional Content-Type HTTP header value for the body. This is taken
-		 * into account, if no other (user set) Content-Type header is available when
-		 * sending the request.
-		 */
-		default Optional<String> contentType() {
-			return Optional.empty();
-		}
+	public interface BodyProvider {
 	}
+
+	//	public interface BodyProvider extends Iterable<CompletableFuture<ByteBuffer>> {
+	//		long contentLength();
+	//
+	//		/**
+	//		 * Get an optional Content-Type HTTP header value for the body. This is taken
+	//		 * into account, if no other (user set) Content-Type header is available when
+	//		 * sending the request.
+	//		 */
+	//		default Optional<String> contentType() {
+	//			return Optional.empty();
+	//		}
+	//	}
 
 	public interface Builder {
 		/**

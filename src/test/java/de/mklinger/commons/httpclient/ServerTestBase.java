@@ -10,10 +10,13 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.servlet.Servlet;
 
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -26,24 +29,43 @@ public abstract class ServerTestBase {
 	@Rule
 	public TemporaryFolder tmp = new TemporaryFolder();
 
-	private Server server;
+	private final List<Server> servers = new ArrayList<>();
 	private int port;
 
 	@Before
 	public void setUpServer() throws Exception {
+		newServer();
+	}
+
+	protected Server newServer() throws IOException, Exception {
 		try (ServerSocket ss = new ServerSocket(0)) {
 			port = ss.getLocalPort();
 		}
-		server = ConscryptHTTP2Server.newServer(
+
+		final Server server = ConscryptHTTP2Server.newServer(
 				port,
 				getServletClass(),
 				singletonMap("tmpDir", tmp.newFolder().getAbsolutePath()));
+
+		servers.add(server);
+
 		server.start();
+
+		return server;
 	}
 
 	protected abstract Class<? extends Servlet> getServletClass();
 
+	public List<Server> getServers() {
+		return servers;
+	}
+
 	protected String getBaseUrl() {
+		return getBaseUrl(servers.get(0));
+	}
+
+	protected String getBaseUrl(Server server) {
+		final int port = ((ServerConnector)server.getConnectors()[0]).getPort();
 		return "https://localhost:" + port;
 	}
 
@@ -51,9 +73,15 @@ public abstract class ServerTestBase {
 		return URI.create(getBaseUrl());
 	}
 
+	protected URI getBaseUri(Server server) {
+		return URI.create(getBaseUrl(server));
+	}
+
 	@After
 	public void tearDownServer() throws Exception {
-		server.stop();
+		for (final Server server : servers) {
+			server.stop();
+		}
 	}
 
 	protected KeyStore getClientKeyStore() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
