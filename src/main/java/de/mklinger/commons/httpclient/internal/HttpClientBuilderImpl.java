@@ -11,8 +11,12 @@ import org.conscrypt.Conscrypt;
 import org.conscrypt.OpenSSLProvider;
 import org.eclipse.jetty.http2.client.HTTP2Client;
 import org.eclipse.jetty.http2.client.http.HttpClientTransportOverHTTP2;
+import org.eclipse.jetty.io.LeakTrackingByteBufferPool;
+import org.eclipse.jetty.io.MappedByteBufferPool;
+import org.eclipse.jetty.util.ProcessorUtils;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.eclipse.jetty.util.thread.ThreadPool;
 
 import de.mklinger.commons.httpclient.HttpClient;
 import de.mklinger.commons.httpclient.HttpClient.Builder;
@@ -122,6 +126,13 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 		jettyClient.setFollowRedirects(followRedirects);
 
 		jettyClient.setExecutor(newExecutor(getClass().getClassLoader(), name));
+
+		final MappedByteBufferPool delegate = new MappedByteBufferPool(2048,
+				jettyClient.getExecutor() instanceof ThreadPool.SizedThreadPool
+				? ((ThreadPool.SizedThreadPool)jettyClient.getExecutor()).getMaxThreads() / 2
+						: ProcessorUtils.availableProcessors() * 2);
+
+		jettyClient.setByteBufferPool(new LeakTrackingByteBufferPool(delegate));
 
 		try {
 			jettyClient.start();
