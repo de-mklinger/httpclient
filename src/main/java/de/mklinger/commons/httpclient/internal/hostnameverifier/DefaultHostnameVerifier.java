@@ -29,7 +29,6 @@ package de.mklinger.commons.httpclient.internal.hostnameverifier;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -80,8 +79,20 @@ public final class DefaultHostnameVerifier implements HostnameVerifier {
 	@Override
 	public boolean verify(final String host, final SSLSession session) {
 		try {
-			final Certificate[] certs = session.getPeerCertificates();
-			final X509Certificate x509 = (X509Certificate) certs[0];
+			final X509Certificate x509 = (X509Certificate) session.getPeerCertificates()[0];
+			verify(host, x509);
+			return true;
+		} catch (final SSLException ex) {
+			if (log.isDebugEnabled()) {
+				log.debug(ex.getMessage(), ex);
+			}
+			return false;
+		}
+	}
+
+	public boolean verify(X509Certificate[] certs, String host, SSLSession session) {
+		try {
+			final X509Certificate x509 = certs[0];
 			verify(host, x509);
 			return true;
 		} catch (final SSLException ex) {
