@@ -47,7 +47,7 @@
 	</scm>
 
 	<properties>
-		<jetty.version>9.4.29.v20200521</jetty.version>
+		<jetty.version>9.4.31.v20200723</jetty.version>
 		<conscrypt.version>2.4.0</conscrypt.version>
 	</properties>
 
@@ -60,15 +60,18 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!-- 
 			<dependency>
 				<groupId>org.conscrypt</groupId>
 				<artifactId>conscrypt-openjdk-uber</artifactId>
 				<version>${conscrypt.version}</version>
 			</dependency>
+			-->
 		</dependencies>
 	</dependencyManagement>
 
 	<dependencies>
+		<!-- 
 		<dependency>
 			<groupId>org.conscrypt</groupId>
 			<artifactId>conscrypt-openjdk-uber</artifactId>
@@ -77,6 +80,11 @@
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-alpn-conscrypt-client</artifactId>
 		</dependency>
+		-->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-alpn-java-client</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty.http2</groupId>
 			<artifactId>http2-client</artifactId>
@@ -84,12 +92,14 @@
 		<dependency>
 			<groupId>org.eclipse.jetty.http2</groupId>
 			<artifactId>http2-http-client-transport</artifactId>
+			<!-- 
 			<exclusions>
 				<exclusion>
 					<groupId>org.eclipse.jetty</groupId>
 					<artifactId>jetty-alpn-java-client</artifactId>
 				</exclusion>
 			</exclusions>
+			-->
 		</dependency>
 
 		<dependency>

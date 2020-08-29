@@ -3,12 +3,9 @@ package de.mklinger.commons.httpclient.internal;
 import static java.util.Objects.requireNonNull;
 
 import java.security.KeyStore;
-import java.security.Security;
 import java.time.Duration;
 import java.util.concurrent.Executor;
 
-import org.conscrypt.Conscrypt;
-import org.conscrypt.OpenSSLProvider;
 import org.eclipse.jetty.http2.client.HTTP2Client;
 import org.eclipse.jetty.http2.client.http.HttpClientTransportOverHTTP2;
 import org.eclipse.jetty.io.LeakTrackingByteBufferPool;
@@ -20,7 +17,6 @@ import org.eclipse.jetty.util.thread.ThreadPool;
 
 import de.mklinger.commons.httpclient.HttpClient;
 import de.mklinger.commons.httpclient.HttpClient.Builder;
-import de.mklinger.commons.httpclient.internal.hostnameverifier.DefaultHostnameVerifier;
 import de.mklinger.commons.httpclient.internal.jetty.JettyHttpClient;
 
 /**
@@ -42,16 +38,16 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 	private static volatile boolean securityProviderAdded = false;
 
 	private static void addSecurityProvider() {
-		if (!securityProviderAdded) {
-			synchronized (HttpClientBuilderImpl.class) {
-				if (!securityProviderAdded) {
-					if (Security.getProvider("Conscrypt") == null) {
-						Security.addProvider(new OpenSSLProvider());
-					}
-					securityProviderAdded = true;
-				}
-			}
-		}
+		//		if (!securityProviderAdded) {
+		//			synchronized (HttpClientBuilderImpl.class) {
+		//				if (!securityProviderAdded) {
+		//					if (Security.getProvider("Conscrypt") == null) {
+		//						Security.addProvider(new OpenSSLProvider());
+		//					}
+		//					securityProviderAdded = true;
+		//				}
+		//			}
+		//		}
 	}
 
 	@Override
@@ -93,11 +89,12 @@ public class HttpClientBuilderImpl implements HttpClient.Builder {
 	public HttpClient build() {
 		addSecurityProvider();
 
-		final DefaultHostnameVerifier defaultHostnameVerifier = new DefaultHostnameVerifier();
-		Conscrypt.setDefaultHostnameVerifier(defaultHostnameVerifier::verify);
+		//		final DefaultHostnameVerifier defaultHostnameVerifier = new DefaultHostnameVerifier();
+		//		Conscrypt.setDefaultHostnameVerifier(defaultHostnameVerifier::verify);
 
 		final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
-		sslContextFactory.setProvider("Conscrypt");
+		//		sslContextFactory.setProvider("Conscrypt");
+		sslContextFactory.setProvider("SunJSSE");
 
 		if (trustStore != null) {
 			sslContextFactory.setTrustStore(trustStore);
